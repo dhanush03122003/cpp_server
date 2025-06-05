@@ -1,1 +1,3 @@
 .vs/
+# Ignore build directory
+build/

@@ -2,11 +2,12 @@
 #include <iostream>
 
 HttpsClient::HttpsClient() {
-
-
+    status_code = HTTP_200_OK;
 }
 HttpsClient::HttpsClient(std::string& request) {
-    
+
+    status_code = HTTP_200_OK;
+
     MethodMap["GET"] = GET;
     MethodMap["POST"] = POST;
     MethodMap["PUT"] = PUT;
@@ -17,6 +18,7 @@ HttpsClient::HttpsClient(std::string& request) {
     request_headers = utils::parse_headers(request);
 
     response_body = "";
+    path_args = new DynamicDict();
 
 
 }
@@ -30,10 +32,18 @@ std::string HttpsClient::process_request() {
         return utils::construct_http_response(HTTP_404_NOT_FOUND, response_body="");
         //return utils::construct_404_response();
     }
+   
+    ResourceMapper resourcemapper;
+    bool is_data_type_mis_match = false;
+    std::string match = utils::find_match(request_uri, resourcemapper.resource_mapper , *path_args , is_data_type_mis_match);
+    auto it = resourcemapper.resource_mapper.find(match);
+    //const std::string a = "id";
+    //
+    //std::cout << path_args->get<std::string>(a);
 
-    auto it = ResourceMapper::resource_mapper.find(request_uri);
+    //bool is_data_type_match = TypeChecker::is_matching_data_type(request_uri, match);
 
-    if (it != resource_mapper.end()) {
+    if (it != resourcemapper.resource_mapper.end()) {
         std::unique_ptr<IResource> ptr = std::move(it->second);
         auto it = MethodMap.find(method);
         std::cout << method;
@@ -67,8 +77,10 @@ std::string HttpsClient::process_request() {
         return utils::construct_http_response(status_code, response_body);
 
     }
+    if (!is_data_type_mis_match) return utils::construct_http_response(HTTP_404_NOT_FOUND, "No matching endpoint " + request_uri + " was found on server");;
+
     // to do raise error 
     std::cout << "No url found" << std::endl;
-    return utils::construct_http_response(HTTP_404_NOT_FOUND, "No matching endpoint "+ request_uri + " was found on server");
+    return utils::construct_http_response(HTTP_400_BAD_REQUEST, "Invalid value provided for one or more parameters.");
 	
 }
