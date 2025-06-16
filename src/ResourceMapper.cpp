@@ -1,10 +1,14 @@
 #include "api/hello.hpp"
 #include "ResourceMapper.hpp"
 
+template<typename T>
+void ResourceMapper::register_uri(const std::string& uri) {
+	resource_mapper[uri] = std::make_unique<T>();
+}
 
 ResourceMapper :: ResourceMapper() {
 
-	resource_mapper["/hello"] = std::make_unique<Hello>();
-	resource_mapper["/hello/<INT:ID>"] = std::make_unique<Hello>();
-	resource_mapper["/hello/<STR:ID>"] = std::make_unique<Hello>();
+	register_uri<Hello>("/hello");
+	register_uri<Hello>("/hello/<INT:ID>");
+	register_uri<Hello>("/hello/<STR:ID>");
 }

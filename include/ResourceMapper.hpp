@@ -16,6 +16,10 @@ public :
 	
 	ResourceMapper(ResourceMapper&&) = default;
 	ResourceMapper& operator=(ResourceMapper&&) = default;
+
+	template<typename T>
+	void register_uri(const std::string& uri);
+
 };
 
 //class ResourceMapper 

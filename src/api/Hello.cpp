@@ -1,7 +1,37 @@
 #include "Hello.hpp"
+QueryParamRules Hello::query_param_rules() {
+
+    QueryParamRules query_param_rules;
+
+    ParamRule limit_rule;
+    limit_rule.required = true;
+    limit_rule.type = "INT";
+    limit_rule.min_value = "1";
+    limit_rule.max_value = "100";
+
+    ParamRule sort_rule;
+    sort_rule.required = false;
+    sort_rule.type = "ENUM";
+    sort_rule.allowed_values = { "asc", "desc" };
+
+    ParamRule is_active_rule;
+    is_active_rule.required = false;
+    is_active_rule.type = "BOOL";
+
+    // Assign rules to the GET method
+    query_param_rules.get["limit"] = limit_rule;
+    query_param_rules.get["sort"] = sort_rule;
+    query_param_rules.get["is_active"] = is_active_rule;
+
+    return query_param_rules; // No query parameters expected
+}
 
 HttpStatus Hello::get(std::string& response_body ) {
     response_body =  "Hello World get\n";
+    const std::string a = "limit";
+    char a1 = query_params.get(a);
+
+   std::cout << a1;
     return HTTP_200_OK; // 200 OK for successful GET
 }
 

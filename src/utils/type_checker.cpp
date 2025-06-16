@@ -63,11 +63,20 @@ std::unordered_map<std::string, TypeChecker::TypeCheckerFn>& TypeChecker::getTyp
     static std::unordered_map<std::string, TypeCheckerFn> typeCheckers{
         {"INT", isInteger},
         {"SIGNED_INT", isSignedInteger},
+        {"LONG", isSignedInteger},
+        {"LONG_LONG", isSignedInteger},
         {"FLOAT", isFloat},
+        {"DOUBLE", isFloat},
+        {"CHAR", [](const std::string& s) { return s.size() == 1; }},
         {"STR", isString},
         {"ALNUM", isAlphaNum},
-        {"UUID", isUUID}
+        {"UUID", isUUID},
+        {"ENUM", isAlphaNum},
+        {"BOOL", [](const std::string& s) {
+            return s == "true" || s == "false" || s == "0" || s == "1";
+        }}
     };
+
     return typeCheckers;
 }
 
@@ -78,10 +87,9 @@ bool TypeChecker::checkType(const std::string& typeName, const std::string& valu
     return it->second(value);
 }
 
-bool TypeChecker::is_matching_data_type(const std::string& uri, const std::string& pattern , DynamicDict& path_args) {
+bool TypeChecker::is_matching_data_type(const std::string& uri, const std::string& pattern ) {
     
 
-    path_args.set("id", "INT", "10");
     auto uriParts = StringUtils::split(uri, '/');
     auto patternParts = StringUtils::split(pattern, '/');
 
@@ -119,6 +127,7 @@ void DynamicDict::clear() {
 }
 
 void DynamicDict::set(const std::string& key, const std::string& type, const std::string& value) {
+   
     auto checkerIt = TypeChecker::getTypeCheckers().find(type);
     if (checkerIt == TypeChecker::getTypeCheckers().end()) {
         std::cerr << "Unknown type: " << type << std::endl;
@@ -130,18 +139,42 @@ void DynamicDict::set(const std::string& key, const std::string& type, const std
         std::cerr << "Value \"" << value << "\" does not match type " << type << std::endl;
         return;
     }
-
+    Value v{};
+    v.type = type;
     // Convert and store
     if (type == "INT" || type == "SIGNED_INT") {
-        data[key] = std::stoi(value);
+        v.data = std::stoi(value);
+    }
+    else if (type == "LONG") {
+        v.data = std::stol(value);
+    }
+    else if (type == "LONG_LONG") {
+        v.data = std::stoll(value);
+    }
+    else if (type == "DOUBLE") {
+        v.data = std::stod(value);
     }
     else if (type == "FLOAT") {
-        data[key] = std::stof(value);
+        v.data = std::stof(value);
     }
-    else if (type == "STR" || type == "ALNUM" || type == "UUID") {
-        data[key] = value;
+    else if (type == "CHAR") {
+        if (value.length() != 1) {
+            std::cerr << "Value \"" << value << "\" is not a valid char\n";
+            return;
+        }
+        v.data = value[0];
     }
-    else {
-        data[key] = value;  // fallback as string
+    else if (type == "STR" || type == "ALNUM" || type == "UUID" || type == "ENUM") {
+        v.data = value;
     }
+
+	data[key] = v;
+}
+
+ValueProxy DynamicDict::get(const std::string& key) const {
+    auto it = data.find(key);
+    if (it == data.end()) {
+        throw std::runtime_error("Key not found: " + key);
+    }
+    return ValueProxy(it->second.data, it->second.type, key);
 }

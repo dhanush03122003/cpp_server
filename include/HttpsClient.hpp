@@ -17,13 +17,16 @@ private:
 	std::string request_uri;
 	std::string method;
 	std::map<std::string, std::string> request_headers;
+	std::map<std::string, std::string> query_args_from_uri;
 	std::string response_headers;
 	std::string response_body;
 	HttpStatus status_code;
 
 	std::map<std::string, Method> MethodMap;
 
-	DynamicDict* path_args;
+	DynamicDict* path_params;
+	DynamicDict* query_params;
+
 	
 public:
 	HttpsClient();

@@ -43,7 +43,7 @@ resource_mapper["/hello/<STR:ID>"] = std::make_unique<Hello>();
 | FLOAT        | Floating point number      |
 | STR          | String                     |
 | ALNUM        | Alphanumeric string        |
-| UUID         | UUID format (8-4-4-4-12)  |
+| UUID         | UUID format (8-4-4-4-12)   |
 
 ---
 
