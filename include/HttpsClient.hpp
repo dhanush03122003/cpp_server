@@ -27,6 +27,9 @@ private:
 	DynamicDict* path_params;
 	DynamicDict* query_params;
 
+	std::string path_params_error_msg;
+	std::string query_params_error_msg;
+
 	
 public:
 	HttpsClient();

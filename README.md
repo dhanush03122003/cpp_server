@@ -1,113 +1,132 @@
-﻿# ⚙️ C++ Lightweight REST Server
+﻿⚙️ **C++ Lightweight REST Server**
 
-A modular, lightweight RESTful server built in modern **C++17** using **raw TCP sockets** and **WebSockets**, with support for **HTTP/HTTPS**, custom request routing, and flexible URI pattern matching.
-
----
-
-## 🚀 Features
-
-- ✅ Implements REST principles (`GET`, `POST`, `PUT`, `DELETE`)
-- 🔒 Supports both HTTP and HTTPS (via OpenSSL)
-- ⚙️ Modular endpoint registration using `ResourceMapper`
-- 🧠 Custom path variable parsing with type constraints
-- 🧩 Typed path parameters: `INT`, `SIGNED_INT`, `FLOAT`, `STR`, `ALNUM`, `UUID`
-- 🧱 Each endpoint implemented as a class with overridable REST methods
-- 🔌 Built from scratch using **raw sockets** (no third-party HTTP frameworks)
+A modular and extensible RESTful server implemented in modern C++17, built from the ground up using raw TCP sockets and WebSockets. Designed for flexibility and performance, this server supports HTTP/HTTPS, custom routing, and strict type-checked URI parameters without relying on external frameworks.
 
 ---
 
-## 📦 Requirements
+## 🚀 Key Features
 
-- **C++17** compatible compiler
-- **CMake** ≥ 3.10
-- **OpenSSL** (required for HTTPS support)
+- **Full REST Compliance**: Native support for GET, POST, PUT, and DELETE methods.
+- **Flexible Routing**: Define endpoints with dynamic path variables and custom type constraints.
+- **Typed Parameters**: Built-in parsing for INT, SIGNED_INT, FLOAT, STR, ALNUM, UUID, and more.
+- **Query Validation**: Enforce required parameters, type checks, range constraints, and enumeration rules.
+- **Extensible Architecture**: Each endpoint is a self-contained C++ class; override methods to customize behavior.
 
 ---
 
-## 🗂️ URI Routing with ResourceMapper
+## 📦 Prerequisites
 
-Endpoints are defined in `ResourceMapper.cpp` using path patterns:
+- C++17-compatible compiler (GCC 7+, Clang 5+, MSVC 2017+)
+- CMake ≥ 3.10
+
+---
+
+## 🔠 Defining Routes
+
+Use `ResourceMapper` to register endpoints with path patterns. Supported types include:
+
+| Type         | Description            |
+| ------------ | ---------------------- |
+| `INT`        | Unsigned integer       |
+| `SIGNED_INT` | Signed integer         |
+| `FLOAT`      | Floating-point number  |
+| `STR`        | Generic string         |
+| `ALNUM`      | Alphanumeric string    |
+| `UUID`       | 8-4-4-4-12 UUID format |
 
 ```cpp
-resource_mapper["/hello"] = std::make_unique<Hello>();
-resource_mapper["/hello/<INT:ID>"] = std::make_unique<Hello>();
-resource_mapper["/hello/<STR:ID>"] = std::make_unique<Hello>();
+// Register endpoints in ResourceMapper.cpp
+    register_uri<Hello>("/hello");
+    register_uri<Hello_Id>("/hello/<INT:ID>");
 ```
 
-### 🔠 Supported Path Types
-
-| Type         | Description                |
-|--------------|----------------------------|
-| INT          | Unsigned integer           |
-| SIGNED_INT   | Signed integer             |
-| FLOAT        | Floating point number      |
-| STR          | String                     |
-| ALNUM        | Alphanumeric string        |
-| UUID         | UUID format (8-4-4-4-12)   |
-
 ---
 
-## 🧱 Example Endpoint Class
+## 🧾 Query Parameter Validation
 
-Each resource class (like `Hello`) overrides HTTP methods:
+Define `QueryParamRules` within your handler class to enforce:
+
+- **Presence** (`required`)
+- **Type** (`INT`, `STR`, `BOOL`, `ENUM`)
+- **Range** (`min_value`, `max_value`)
+- **Allowed Values** (for enumerations)
 
 ```cpp
-#include "Hello.hpp"
+QueryParamRules HelloHandler::query_param_rules() {
+    QueryParamRules rules;
 
-HttpStatus Hello::get(std::string& response_body) {
-    std::string id = path_args.get["ID"];
-    response_body = "Hello World get\n";
-    return HTTP_200_OK;
-}
+    ParamRule limit;
+    limit.required = true;
+    limit.type     = "INT";
+    limit.min_value = "1";
+    limit.max_value = "100";
+    rules.get["limit"] = limit;
 
-HttpStatus Hello::post(std::string& response_body) {
-    response_body = "Hello World post\n";
-    return HTTP_201_CREATED;
-}
+    ParamRule sort;
+    sort.required = false;
+    sort.type     = "ENUM";
+    sort.allowed_values = {"asc", "desc"};
+    rules.get["sort"] = sort;
 
-HttpStatus Hello::put(std::string& response_body) {
-    response_body = "Hello World put\n";
-    return HTTP_200_OK;
-}
-
-HttpStatus Hello::delete_(std::string& response_body) {
-    response_body = "Hello World delete\n";
-    return HTTP_204_NO_CONTENT;
+    return rules;
 }
 ```
 
 ---
 
-<!-- ## 🔐 HTTPS Support
+## 🧱 Example Endpoint Implementation
 
-To enable secure connections:
+```cpp
+class HelloHandler : public Resource {
+public:
+    HttpStatus get(std::string& response_body) override {
+        int limit = query_params.get("limit");
+        response_body = "Hello World! Limit = " + std::to_string(limit) + "\n";
+        return HTTP_200_OK;
+    }
 
-- Install OpenSSL and ensure it is linked in `CMakeLists.txt`
-- SSL certificates are loaded by the server to serve HTTPS traffic
-- No third-party frameworks are used; only OpenSSL APIs
+    HttpStatus post(std::string& response_body) override {
+        response_body = "Created Hello Resource\n";
+        return HTTP_201_CREATED;
+    }
 
---- -->
+    HttpStatus put(std::string& response_body) override {
+        response_body = "Updated Hello Resource\n";
+        return HTTP_200_OK;
+    }
 
-## 🛠️ Build Instructions
+    HttpStatus delete_(std::string& response_body) override {
+        response_body = "Deleted Hello Resource\n";
+        return HTTP_204_NO_CONTENT;
+    }
+};
+```
 
-To build the server, follow these steps:
+---
+## 📝 Update CmakeLists.txt
+Ensure your `CMakeLists.txt` includes the necessary components:
+```cmake
+add_executable(... 
+                src/api/Hello.cpp
+)
+
+```
+
+---
+
+## 🛠️ Building the Project
 
 ```bash
-git clone https://github.com/your-username/your-repo.git
-cd your-repo
+git clone https://github.com/your-username/cpp_server.git
+cd cpp_server
 mkdir build && cd build
-cmake .. -DCMAKE_POLICY_VERSION_MINIMUM=3.5
+cmake ..
 cmake --build .
 ```
 
 ---
 
-<!-- ## 📤 Contributing
+## 📢 Contributing
 
-Contributions are welcome! Feel free to open issues or submit PRs to improve functionality, fix bugs, or add more features.
+Contributions are welcome! Please open issues for bug reports or feature requests, and submit pull requests for enhancements.
 
----
-
-## 📜 License
-
-This project is licensed under the MIT License. -->

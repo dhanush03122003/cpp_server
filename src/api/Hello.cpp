@@ -27,25 +27,27 @@ QueryParamRules Hello::query_param_rules() {
 }
 
 HttpStatus Hello::get(std::string& response_body ) {
-    response_body =  "Hello World get\n";
+    response_body =  "Hello World get";
     const std::string a = "limit";
-    char a1 = query_params.get(a);
+    int limit = query_params.get(a);
 
-   std::cout << a1;
+    std::string name = path_params.get("NAME");
+
+	std::cout << "Inside Hello_ID Get method , Query Param Limit: " << limit << " Path Param Name: "<< name << std::endl;
     return HTTP_200_OK; // 200 OK for successful GET
 }
 
 HttpStatus Hello::post(std::string& response_body) {
-   response_body = "Hello World post\n";
+   response_body = "Hello World post";
    return HTTP_201_CREATED; // 201 Created is often used for successful POST
 }
 
 HttpStatus Hello::put(std::string& response_body) {
-   response_body = "Hello World put\n";
+   response_body = "Hello World put";
    return HTTP_200_OK; // 200 OK or 204 No Content for successful PUT
 }
 
 HttpStatus Hello::delete_(std::string& response_body) {
-   response_body = "Hello World delete\n";
+   response_body = "Hello World delete";
    return HTTP_204_NO_CONTENT; // 204 No Content is typical for successful DELETE
 }

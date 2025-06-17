@@ -5,7 +5,7 @@
 #include <iostream>
 
 
-class Hello : public IResource {
+class Hello_Id : public IResource {
 public:
 	QueryParamRules query_param_rules() override;
 	HttpStatus get(std::string&) override;

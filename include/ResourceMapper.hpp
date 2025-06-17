@@ -21,13 +21,3 @@ public :
 	void register_uri(const std::string& uri);
 
 };
-
-//class ResourceMapper 
-//protected:
-//    std::map<std::string, std::unique_ptr<IResource>> resource_mapper;
-//
-//public:
-//ResourceMapper();
-
-
-//};

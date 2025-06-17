@@ -3,6 +3,7 @@
 #include "http_headers.hpp"
 #include "type_checker.hpp"
 
+
 namespace utils {
 
     std::string get_http_date() {
@@ -95,15 +96,21 @@ namespace utils {
 
         while (std::getline(ss, pair, '&')) {
             std::size_t equal_pos = pair.find('=');
+            std::string key, value;
+
             if (equal_pos != std::string::npos) {
-                std::string key = pair.substr(0, equal_pos);
-                std::string value = pair.substr(equal_pos + 1);
-
-                // Optional simple decoding: convert '+' to space
-                std::replace(value.begin(), value.end(), '+', ' ');
-
-                query_params[key] = value;
+                key = pair.substr(0, equal_pos);
+                value = pair.substr(equal_pos + 1);
             }
+            else {
+                key = pair;
+                value = "";  // No value assigned
+            }
+
+            std::replace(value.begin(), value.end(), '+', ' ');  // Simple decoding
+            query_params[key] = value;
+
+            //std::cout << key << " = " << value << std::endl;
         }
 
         return query_params;
@@ -120,94 +127,49 @@ namespace utils {
         return empty;
     }
 
-    bool validate_query_params(
-        const std::string& method,
-        const std::map<std::string, std::string>& query_args_from_uri,
-        const QueryParamRules& rules,
-		DynamicDict& query_params,
-        std::string& error_out) {
+    bool valid_path_params(const std::string uri, const std::string uri_pattern, std::string& path_params_error_msg) {
+        auto uriParts = StringUtils::split(uri, '/');
+        auto patternParts = StringUtils::split(uri_pattern, '/');
 
-        const auto& method_rules = get_query_param_rules_for_method(rules, method);
-
-        for (const auto& [key, _] : query_args_from_uri) {
-            if (method_rules.find(key) == method_rules.end()) {
-                error_out = "Unexpected query parameter: " + key;
-                return false;
-            }
+        if (uriParts.size() != patternParts.size()) {
+            path_params_error_msg = "Mismatch in URI and pattern segments count.";
+            return false;
         }
 
-        for (const auto& [param_name, rule] : method_rules) {
-            auto it = query_args_from_uri.find(param_name);
+        for (size_t i = 0; i < patternParts.size(); ++i) {
+            const auto& p = patternParts[i];
+            const auto& u = uriParts[i];
 
-            if (rule.required && it == query_args_from_uri.end()) {
-                error_out = "Missing required query parameter: " + param_name;
-                return false;
+            if (!p.empty() && p.front() == '<' && p.back() == '>') {
+                size_t colonPos = p.find(':');
+                if (colonPos == std::string::npos) {
+                    path_params_error_msg = "Malformed pattern. Missing ':' in path parameter.";
+                    return false;
+                }
+
+                // Extract type and name
+                std::string type = p.substr(1, colonPos - 1);
+                std::string name = p.substr(colonPos + 1, p.size() - colonPos - 2); // -2 for ':' and '>'
+
+                // Simulate a valid type list (replace with your own list of valid types)
+                const std::vector<std::string> valid_data_types = { VALID_PATH_PARAM_DATA_TYPES }; // Example valid types
+
+                // Check if the type is valid
+                if (std::find(valid_data_types.begin(), valid_data_types.end(), type) == valid_data_types.end()) {
+                    path_params_error_msg = "Invalid type '" + type + "' for parameter '" + name + "' in pattern.";
+                    return false;
+                }
+
+                // Validate value with TypeChecker
+                if (!TypeChecker::checkType(type, u)) {
+                    path_params_error_msg = "Value '" + u + "' for parameter '" + name + "' does not match expected type '" + type + "'.";
+                    return false;
+                }
             }
-
-            if (it != query_args_from_uri.end()) {
-                const std::string& value = it->second;
-                const std::string& expected_type = rule.type;
-
-                if (expected_type == "INT") {
-                    if (!std::regex_match(value, std::regex("^-?\\d+$"))) {
-                        error_out = "Invalid INT format for param: " + param_name;
-                        return false;
-                    }
-                    if (!rule.min_value.empty() && std::stoi(value) < std::stoi(rule.min_value)) {
-                        error_out = param_name + " is below minimum allowed value";
-                        return false;
-                    }
-                    if (!rule.max_value.empty() && std::stoi(value) > std::stoi(rule.max_value)) {
-                        error_out = param_name + " is above maximum allowed value";
-                        return false;
-                    }
-                }
-                else if (expected_type == "FLOAT") {
-                    if (!std::regex_match(value, std::regex("^-?\\d+(\\.\\d+)?$"))) {
-                        error_out = "Invalid FLOAT format for param: " + param_name;
-                        return false;
-                    }
-                    if (!rule.min_value.empty() && std::stof(value) < std::stof(rule.min_value)) {
-                        error_out = param_name + " is below minimum allowed value";
-                        return false;
-                    }
-                    if (!rule.max_value.empty() && std::stof(value) > std::stof(rule.max_value)) {
-                        error_out = param_name + " is above maximum allowed value";
-                        return false;
-                    }
-                }
-                else if (expected_type == "BOOL") {
-                    if (value != "true" && value != "false" && value != "1" && value != "0") {
-                        error_out = "Invalid BOOL value for param: " + param_name;
-                        return false;
-                    }
-                }
-                else if (expected_type == "STR") {
-                    if (value.empty()) {
-                        error_out = "Empty string for param: " + param_name;
-                        return false;
-                    }
-                }
-                else if (expected_type == "ALNUM") {
-                    if (!std::regex_match(value, std::regex("^[a-zA-Z0-9]+$"))) {
-                        error_out = "Invalid ALNUM format for param: " + param_name;
-                        return false;
-                    }
-                }
-                else if (expected_type == "UUID") {
-                    if (!std::regex_match(value, std::regex("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89ab][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$"))) {
-                        error_out = "Invalid UUID format for param: " + param_name;
-                        return false;
-                    }
-                }
-                else if (expected_type == "ENUM") {
-                    if (std::find(rule.allowed_values.begin(), rule.allowed_values.end(), value) == rule.allowed_values.end()) {
-                        error_out = "Invalid value for ENUM param: " + param_name;
-                        return false;
-                    }
-                }
-                else {
-                    error_out = "Unknown type rule for param: " + param_name;
+            else {
+                // Check if it's a literal mismatch
+                if (p != u) {
+                    path_params_error_msg = "Literal mismatch: expected '" + p + "' but found '" + u + "' in parameter '" + p + "'.";
                     return false;
                 }
             }
@@ -216,15 +178,93 @@ namespace utils {
         return true;
     }
 
-    bool set_params(DynamicDict& path_params, const std::string uri, const std::string uri_pattern, DynamicDict& query_params, std::map<std::string, std::string> query_args_from_uri, const QueryParamRules& rules ,const std::string method){
+
+    bool valid_query_params(
+        const std::string& method,
+        const std::map<std::string, std::string>& query_args_from_uri,
+        const QueryParamRules& rules,
+        std::string& query_params_error_msg) {
+
+        const auto& method_rules = get_query_param_rules_for_method(rules, method);
+
+        for (const auto& [key, _] : query_args_from_uri) {
+            if (method_rules.find(key) == method_rules.end()) {
+                query_params_error_msg = "Unexpected query parameter: " + key;
+                return false;
+            }
+        }
+
+        for (const auto& [param_name, rule] : method_rules) {
+            auto it = query_args_from_uri.find(param_name);
+
+            if (rule.required && it == query_args_from_uri.end()) {
+                query_params_error_msg = "Missing required query parameter: " + param_name;
+                return false;
+            }
+
+            if (it != query_args_from_uri.end()) {
+                const std::string& value = it->second;
+                const std::string& expected_type = rule.type;
+
+                const std::vector<std::string> valid_data_types = { VALID_QUERY_PARAM_DATA_TYPES };
+
+                // Check if the type is valid
+                if (std::find(valid_data_types.begin(), valid_data_types.end(), expected_type) == valid_data_types.end()) {
+                    query_params_error_msg = "Invalid data type " + expected_type + "for "+ param_name+"  parameter.";
+                    return false;
+                }
+
+
+                if (expected_type == "INT") {
+                    if (!std::regex_match(value, std::regex("^-?\\d+$"))) {
+                        query_params_error_msg = "Invalid INT format for param: " + param_name;
+                        return false;
+                    }
+                    if (!rule.min_value.empty() && std::stoi(value) < std::stoi(rule.min_value)) {
+                        query_params_error_msg = param_name + " is below minimum allowed value";
+                        return false;
+                    }
+                    if (!rule.max_value.empty() && std::stoi(value) > std::stoi(rule.max_value)) {
+                        query_params_error_msg = param_name + " is above maximum allowed value";
+                        return false;
+                    }
+                }
+                else if (expected_type == "BOOL") {
+                    if (value != "true" && value != "false" && value != "1" && value != "0") {
+                        query_params_error_msg = "Invalid BOOL value for param: " + param_name;
+                        return false;
+                    }
+                }
+                else if (expected_type == "STR") {
+                    if (value.empty()) {
+                        query_params_error_msg = "Empty string for param: " + param_name;
+                        return false;
+                    }
+                }
+                else if (expected_type == "ENUM") {
+                    if (std::find(rule.allowed_values.begin(), rule.allowed_values.end(), value) == rule.allowed_values.end()) {
+                        query_params_error_msg = "Invalid value for ENUM param: " + param_name +" allowed values are [ ";
+                        for (auto i : rule.allowed_values) { query_params_error_msg += "'" + i + "' "; }
+                        query_params_error_msg += "]";
+                        return false;
+                    }
+                }
+                else {
+                    query_params_error_msg = "Invalid data type " + expected_type + "for " + param_name + "  parameter.";
+                    return false;
+                }
+            }
+        }
+
+        return true;
+    }
+
+    void set_params(DynamicDict& path_params, const std::string uri, const std::string uri_pattern, DynamicDict& query_params, std::map<std::string, std::string> query_args_from_uri, const QueryParamRules& rules ,const std::string method){
         // uri_pattern : /hello/<INT:ID>
         // uri : /hello/12345
 
         auto uriParts = StringUtils::split(uri, '/');
         auto patternParts = StringUtils::split(uri_pattern, '/');
-
-        if (uriParts.size() != patternParts.size())
-            return false;
 
         for (size_t i = 0; i < patternParts.size(); ++i) {
             const auto& p = patternParts[i];
@@ -232,23 +272,13 @@ namespace utils {
 
             if (!p.empty() && p.front() == '<' && p.back() == '>') {
                 size_t colonPos = p.find(':');
-                if (colonPos == std::string::npos)
-                    return false;  // malformed pattern
 
                 // Extract type and name
                 std::string type = p.substr(1, colonPos - 1);
                 std::string name = p.substr(colonPos + 1, p.size() - colonPos - 2); // -2 for ':' and '>'
 
-                // Use TypeChecker::checkType to validate
-                if (!TypeChecker::checkType(type, u))
-                    return false;  // value doesn't match the expected type
-
                 // Set in path_params
                 path_params.set(name,type,u);
-            }
-            else {
-                if (p != u)
-                    return false;  // literal path segment mismatch
             }
         }
         const auto& method_rules = get_query_param_rules_for_method(rules, method);
@@ -258,7 +288,6 @@ namespace utils {
             query_params.set(key, it->second.type, value);
         }
 
-        return true;
     }
 
 
@@ -279,68 +308,56 @@ namespace utils {
         return response;
     }
 
-    std::string construct_404_response() {
-        std::string status_line = "HTTP/1.1 " + std::to_string((int)HTTP_404_NOT_FOUND) + " " + get_http_status_message(HTTP_404_NOT_FOUND) + "\r\n";
 
-        // Combine headers and body
-        std::string response = status_line
+    bool is_matching_data_type(const std::string& uri, const std::string& pattern) {
 
-            + HEADER_SERVER_INFO
-            + HEADER_CONTENT_TYPE_PLAIN
-            + HEADER_CONNECTION_CLOSE
-            + get_http_date()
-            + "\r\n";  // End of headers
 
-        return response;
+        auto uriParts = StringUtils::split(uri, '/');
+        auto patternParts = StringUtils::split(pattern, '/');
+
+        if (uriParts.size() != patternParts.size())
+            return false;
+
+        for (size_t i = 0; i < patternParts.size(); ++i) {
+            const auto& p = patternParts[i];
+            const auto& u = uriParts[i];
+
+            if (!p.empty() && p.front() == '<' && p.back() == '>') {
+                size_t colonPos = p.find(':');
+                if (colonPos == std::string::npos)
+                    return false;  // malformed pattern
+
+                std::string type = p.substr(1, colonPos - 1);
+
+                if (!TypeChecker::checkType(type, u))
+                    return false;  // value doesn't match the expected type
+            }
+            else {
+                if (p != u)
+                    return false;  // literal path segment mismatch
+            }
+        }
+
+        return true;
     }
-    std::string find_match(std::string& uri, std::map<std::string, std::unique_ptr<IResource> >& resource_mapper ,bool& is_data_type_mismatch_in_uri){
+
+    std::string find_match(std::string& uri, std::map<std::string, std::unique_ptr<IResource> >& resource_mapper ,bool& is_data_type_mismatch_in_path_args){
 
         for (const auto& it : resource_mapper) {
 
             if (StringUtils::is_match_with(uri, it.first) ) {
-                if (TypeChecker::is_matching_data_type(uri, it.first)) {
-                    is_data_type_mismatch_in_uri = false;
+                if (utils::is_matching_data_type(uri, it.first)) {
+                    is_data_type_mismatch_in_path_args = false;
                     return it.first;
                 }
                 else {
-                    is_data_type_mismatch_in_uri = true;
+                    is_data_type_mismatch_in_path_args = true;
                 }
                 
             }
         }
         return "MATCHING_URI_NOT_FOUND";
     }
-    //bool matching_data_type(const std::string& uri, const std::string& pattern) {
-    //    auto uriParts = StringUtils::split(uri, '/');
-    //    auto patternParts = StringUtils::split(pattern, '/');
 
-    //    if (uriParts.size() != patternParts.size())
-    //        return false;
-
-    //    for (size_t i = 0; i < patternParts.size(); ++i) {
-    //        const auto& p = patternParts[i];
-    //        const auto& u = uriParts[i];
-
-    //        if (!p.empty() && p.front() == '<' && p.back() == '>') {
-    //            size_t colonPos = p.find(':');
-    //            if (colonPos == std::string::npos)
-    //                return false;  // malformed pattern
-
-    //            // Extract type substring between '<' and ':'
-    //            std::string type = p.substr(1, colonPos - 1);
-
-    //            // Use TypeChecker::checkType to validate
-    //            if (!TypeChecker::checkType(type, u))
-    //                return false;  // value doesn't match the expected type
-    //        }
-    //        else {
-    //            if (p != u)
-    //                return false;  // literal path segment mismatch
-    //        }
-    //    }
-
-    //    return true;
-    //}
-
-    
+ 
 }

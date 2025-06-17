@@ -47,7 +47,9 @@ add_executable(cpp_server
     src/api/Hello.cpp
     src/utils/HttpUtils.cpp
     src/utils/StringUtils.cpp 
-    src/utils/type_checker.cpp )
+    src/utils/type_checker.cpp  
+    src/api/Hello_Id.cpp
+    )
 
 #FetchContent_MakeAvailable(json json_schema_validator)
 

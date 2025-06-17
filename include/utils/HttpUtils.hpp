@@ -22,6 +22,11 @@ enum Method {
    DELETE_  
 };  
 
+#define VALID_PATH_PARAM_DATA_TYPES "INT", "SIGNED_INT", "FLOAT", "STR", "ALNUM", "UUID"
+
+#define VALID_QUERY_PARAM_DATA_TYPES "INT", "BOOL", "STR", "ENUM", 
+
+
 namespace utils {  
    std::string get_http_date();  
    std::map<std::string, std::string> parse_headers(const std::string& );    
@@ -31,14 +36,16 @@ namespace utils {
    std::string construct_http_response(int status_code, const std::string& response_body = "", const std::string& content_type = "application/json");
    std::string construct_404_response();
    std::string find_match(std::string&, std::map<std::string, std::unique_ptr<IResource>>&, bool& );
-   bool validate_query_params(
+   bool is_matching_data_type(const std::string& uri, const std::string& pattern);
+
+   bool valid_path_params(const std::string uri, const std::string uri_pattern, std::string& path_params_error_msg);
+   bool valid_query_params(
        const std::string& method,
        const std::map<std::string, std::string>& query_args,
        const QueryParamRules& rules,
-       DynamicDict& query_params,
        std::string& error_out
    );
-   bool set_params(
+   void set_params(
        DynamicDict& path_params,
        const std::string uri,
        const std::string uri_pattern,

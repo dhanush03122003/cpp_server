@@ -1,4 +1,5 @@
-#include "api/hello.hpp"
+#include "api/Hello.hpp"
+#include "api/Hello_Id.hpp"
 #include "ResourceMapper.hpp"
 
 template<typename T>
@@ -8,7 +9,7 @@ void ResourceMapper::register_uri(const std::string& uri) {
 
 ResourceMapper :: ResourceMapper() {
 
-	register_uri<Hello>("/hello");
-	register_uri<Hello>("/hello/<INT:ID>");
-	register_uri<Hello>("/hello/<STR:ID>");
+	register_uri<Hello>("/hello/<STR:NAME>");
+	register_uri<Hello_Id>("/hello_id/<INT:ID>");
+
 }

@@ -86,7 +86,7 @@ SocketHandler::handle_client(SocketHandler* client) {
     char buf[4096];
     int bytes = client->recv(buf, sizeof(buf));
 
-    //std::string message = "eyy dengullee ey denguleee from cpp server !";
+    //std::string message = "Hii cpp server !";
 
     //std::string response =
     //    "HTTP/1.1 200 OK\r\n"
@@ -100,7 +100,6 @@ SocketHandler::handle_client(SocketHandler* client) {
     //if (bytes > 0 && std::string(buf, bytes).find("GET /favicon.ico") == std::string::npos)
     if (bytes > 0)
     {
-        std::cout << "inside::";
         HttpsClient httpclient = HttpsClient(std::string(buf, bytes));
         std::string response = httpclient.process_request();
         //std::cout << "inside bytes" << std::endl;

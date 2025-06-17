@@ -162,7 +162,6 @@ namespace TypeChecker {
 
     // Check if the value matches the type specified by typeName
     bool checkType(const std::string& typeName, const std::string& value);
-    bool is_matching_data_type(const std::string& uri, const std::string& pattern);
 
 }
 

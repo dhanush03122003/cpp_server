@@ -87,40 +87,6 @@ bool TypeChecker::checkType(const std::string& typeName, const std::string& valu
     return it->second(value);
 }
 
-bool TypeChecker::is_matching_data_type(const std::string& uri, const std::string& pattern ) {
-    
-
-    auto uriParts = StringUtils::split(uri, '/');
-    auto patternParts = StringUtils::split(pattern, '/');
-
-    if (uriParts.size() != patternParts.size())
-        return false;
-
-    for (size_t i = 0; i < patternParts.size(); ++i) {
-        const auto& p = patternParts[i];
-        const auto& u = uriParts[i];
-
-        if (!p.empty() && p.front() == '<' && p.back() == '>') {
-            size_t colonPos = p.find(':');
-            if (colonPos == std::string::npos)
-                return false;  // malformed pattern
-
-            // Extract type substring between '<' and ':'
-            std::string type = p.substr(1, colonPos - 1);
-
-            // Use TypeChecker::checkType to validate
-            if (!TypeChecker::checkType(type, u))
-                return false;  // value doesn't match the expected type
-        }
-        else {
-            if (p != u)
-                return false;  // literal path segment mismatch
-        }
-    }
-
-    return true;
-}
-
 
 void DynamicDict::clear() {
     data.clear();
