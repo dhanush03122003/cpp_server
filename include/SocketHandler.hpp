@@ -1,14 +1,21 @@
 #include <winsock2.h>
+#include <ws2tcpip.h>  // Required for InetPton
+
 #include <iostream>
 #include <string>
 #include <thread>
 
 #define SOCKET_BIND_ERROR -1
 
+//#define _WINSOCK_DEPRECATED_NO_WARNINGS
+
+
 class SocketHandler
 {
 private:
 	SOCKET sock_fd;
+    static int winsock_init_count;
+
 public:
 	SocketHandler();
 	~SocketHandler();

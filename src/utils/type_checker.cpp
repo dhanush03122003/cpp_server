@@ -32,9 +32,9 @@ bool TypeChecker::isFloat(const std::string& s) {
 }
 
 bool TypeChecker::isString(const std::string& s) {
-    if (isFloat(s) || isSignedInteger(s) || isInteger(s)) {
+  /*  if (isFloat(s) || isSignedInteger(s) || isInteger(s)) {
         return false;
-    }
+    }*/
     return !s.empty() && s.find('/') == std::string::npos;
 }
 

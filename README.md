@@ -120,11 +120,22 @@ add_executable(...
 git clone https://github.com/your-username/cpp_server.git
 cd cpp_server
 mkdir build && cd build
-cmake ..
+cmake .. -DCMAKE_POLICY_VERSION_MINIMUM=3.5
 cmake --build .
 ```
 
 ---
+
+## Sample Curl Cmd
+```bash
+curl -X POST "http://localhost:8080/hello/1" -H "Content-Type: application/json" -d "{\"int_key\":1, \"string_key\":\"value\"}"
+{
+    "int_value": 1,
+    "message": "Hello World POST",
+    "string_value": "value"
+}
+```
+
 
 ## 📢 Contributing
 

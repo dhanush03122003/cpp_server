@@ -15,6 +15,10 @@
 
 #include "ResourceMapper.hpp"
 
+#include <nlohmann/json.hpp>
+using json = nlohmann::json;
+
+
 enum Method {  
    GET,  
    POST,  
@@ -27,13 +31,21 @@ enum Method {
 #define VALID_QUERY_PARAM_DATA_TYPES "INT", "BOOL", "STR", "ENUM", 
 
 
+
 namespace utils {  
+
+   inline const std::map<std::string, Method> MethodMap = {
+       {"GET" ,GET},
+       {"POST" , POST},
+       {"PUT", PUT},
+       {"DELETE", DELETE_}
+   };
    std::string get_http_date();  
    std::map<std::string, std::string> parse_headers(const std::string& );    
    std::string _extract_uri(const std::string& );
    std::string _exctract_method(const std::string& );
    std::map<std::string, std::string> _extract_query_args(const std::string&);
-   std::string construct_http_response(int status_code, const std::string& response_body = "", const std::string& content_type = "application/json");
+   std::string construct_http_response(int status_code, const json response_body = "", const std::string& content_type = "application/json");
    std::string construct_404_response();
    std::string find_match(std::string&, std::map<std::string, std::unique_ptr<IResource>>&, bool& );
    bool is_matching_data_type(const std::string& uri, const std::string& pattern);
@@ -54,4 +66,6 @@ namespace utils {
        const QueryParamRules& rules,
        const std::string method
    );
+   json extract_payload(const std::string request);
+
 }

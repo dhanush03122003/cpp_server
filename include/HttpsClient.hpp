@@ -18,11 +18,9 @@ private:
 	std::string method;
 	std::map<std::string, std::string> request_headers;
 	std::map<std::string, std::string> query_args_from_uri;
-	std::string response_headers;
-	std::string response_body;
+	//std::string response_headers;
+	json response_body;
 	HttpStatus status_code;
-
-	std::map<std::string, Method> MethodMap;
 
 	DynamicDict* path_params;
 	DynamicDict* query_params;
@@ -30,6 +28,7 @@ private:
 	std::string path_params_error_msg;
 	std::string query_params_error_msg;
 
+	json payload;
 	
 public:
 	HttpsClient();

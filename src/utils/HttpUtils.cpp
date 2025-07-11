@@ -3,7 +3,6 @@
 #include "http_headers.hpp"
 #include "type_checker.hpp"
 
-
 namespace utils {
 
     std::string get_http_date() {
@@ -290,10 +289,9 @@ namespace utils {
 
     }
 
+    std::string construct_http_response(int status_code, const json response_body, const std::string& content_type) {
 
-    std::string construct_http_response(int status_code, const std::string& response_body, const std::string& content_type) {
-
-        std::string full_body = "{ \"message\": \"" + response_body + "\" }";
+        std::string full_body = response_body.dump(4);
         std::string content_length = std::to_string(full_body.size());
         std::string response = "HTTP/1.1 " + std::to_string(status_code) + " " + get_http_status_message(status_code) + "\r\n"
           
@@ -307,7 +305,6 @@ namespace utils {
 
         return response;
     }
-
 
     bool is_matching_data_type(const std::string& uri, const std::string& pattern) {
 
@@ -339,6 +336,31 @@ namespace utils {
         }
 
         return true;
+    }
+
+    json extract_payload(const std::string request) {
+        size_t pos = request.find('{');
+        if (pos != std::string::npos) {
+            try {
+                return json::parse(request.substr(pos));
+            }
+            catch (const json::parse_error& e) {
+                return json{
+                    {"error", "JSON parse error"},
+                    {"message", e.what()}
+                };
+            }
+            catch (const std::exception& e) {
+                return json{
+                    {"error", "Exception while parsing"},
+                    {"message", e.what()}
+                };
+            }
+        }
+
+        return json{
+            {"error", "No JSON object found in request"}
+        };
     }
 
     std::string find_match(std::string& uri, std::map<std::string, std::unique_ptr<IResource> >& resource_mapper ,bool& is_data_type_mismatch_in_path_args){

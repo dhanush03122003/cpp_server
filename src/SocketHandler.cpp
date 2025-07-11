@@ -1,15 +1,25 @@
 #include "SocketHandler.hpp"
 #include "HttpsClient.hpp"
 
-SocketHandler :: SocketHandler() : sock_fd(-1) {
-    #ifdef _WIN32
+int SocketHandler::winsock_init_count = 0;
+
+SocketHandler::SocketHandler() : sock_fd(-1) {
+#ifdef _WIN32
+    if (winsock_init_count++ == 0) {
         WSADATA wsa;
-        WSAStartup(MAKEWORD(2, 2), &wsa);
-    #endif
+        if (WSAStartup(MAKEWORD(2, 2), &wsa) != 0) {
+            std::cerr << "WSAStartup failed\n";
+        }
+    }
+#endif
 }
 
-SocketHandler :: ~SocketHandler() {
-    WSACleanup();
+SocketHandler::~SocketHandler() {
+#ifdef _WIN32
+    if (--winsock_init_count == 0) {
+        WSACleanup();
+    }
+#endif
 }
 
 bool 
@@ -42,8 +52,11 @@ SocketHandler::listen(int backlog) {
 
 SocketHandler* 
 SocketHandler::accept(std::string& clientIp, uint16_t& clientPort) {
-    sockaddr_in clientAddr;
-    SOCKET clientSock = ::accept(sock_fd, nullptr, nullptr);
+    sockaddr_in clientAddr{};
+    int addrLen = sizeof(clientAddr);
+
+    // Accept a connection request from a client
+    SOCKET clientSock = ::accept(sock_fd, (sockaddr*)&clientAddr, &addrLen);//sock_fd , null , null
     if (clientSock == INVALID_SOCKET) return nullptr;
 
     SocketHandler* client = new SocketHandler();
@@ -51,15 +64,20 @@ SocketHandler::accept(std::string& clientIp, uint16_t& clientPort) {
     return client;
 }
 
-bool 
+bool
 SocketHandler::connect(const std::string& serverIp, uint16_t serverPort) {
-    sockaddr_in addr;
+    sockaddr_in addr{};
     addr.sin_family = AF_INET;
     addr.sin_port = htons(serverPort);
-    addr.sin_addr.s_addr = inet_addr(serverIp.c_str());
-    return ::connect(sock_fd, (sockaddr*)&addr,
-        sizeof(addr)) != SOCKET_ERROR;
+
+    if (InetPton(AF_INET, serverIp.c_str(), &addr.sin_addr) != 1) {
+        // Failed to convert IP address
+        return false;
+    }
+
+    return ::connect(sock_fd, (sockaddr*)&addr, sizeof(addr)) != SOCKET_ERROR;
 }
+
 
 int 
 SocketHandler :: send(const char* data, size_t len) {

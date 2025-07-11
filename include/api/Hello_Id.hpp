@@ -8,8 +8,8 @@
 class Hello_Id : public IResource {
 public:
 	QueryParamRules query_param_rules() override;
-	HttpStatus get(std::string&) override;
-	HttpStatus put(std::string&) override;
-	HttpStatus post(std::string&) override;
-	HttpStatus delete_(std::string&) override;
+	HttpStatus get(json&) override;
+	HttpStatus put(json&) override;
+	HttpStatus post(json&) override;
+	HttpStatus delete_(json&) override;
 };

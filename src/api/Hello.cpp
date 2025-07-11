@@ -26,28 +26,41 @@ QueryParamRules Hello::query_param_rules() {
     return query_param_rules; // No query parameters expected
 }
 
-HttpStatus Hello::get(std::string& response_body ) {
-    response_body =  "Hello World get";
+HttpStatus Hello::get(json& response_body) {
     const std::string a = "limit";
-    int limit = query_params.get(a);
+    int limit = query_params.get(a);  // ValueProxy allows implicit cast
 
     std::string name = path_params.get("NAME");
 
-	std::cout << "Inside Hello_ID Get method , Query Param Limit: " << limit << " Path Param Name: "<< name << std::endl;
-    return HTTP_200_OK; // 200 OK for successful GET
+    std::cout << "Inside Hello_ID Get method, Query Param Limit: " << limit
+        << " Path Param Name: " << name << std::endl;
+    
+    
+    response_body["message"] = "Hello World GET";
+    response_body["limit"] = limit;
+    response_body["name"] = name;
+
+    return HTTP_200_OK;
 }
 
-HttpStatus Hello::post(std::string& response_body) {
-   response_body = "Hello World post";
-   return HTTP_201_CREATED; // 201 Created is often used for successful POST
+HttpStatus Hello::post(json& response_body) {
+    response_body["message"] = "Hello World POST";
+
+    std::string string_value = payload["string_key"];
+	int int_value = payload["int_key"];
+    
+	response_body["string_value"] = string_value;
+	response_body["int_value"] = int_value;
+
+    return HTTP_201_CREATED;
 }
 
-HttpStatus Hello::put(std::string& response_body) {
-   response_body = "Hello World put";
-   return HTTP_200_OK; // 200 OK or 204 No Content for successful PUT
+HttpStatus Hello::put(json& response_body) {
+    response_body["message"] = "Hello World PUT";
+    return HTTP_200_OK;
 }
 
-HttpStatus Hello::delete_(std::string& response_body) {
-   response_body = "Hello World delete";
-   return HTTP_204_NO_CONTENT; // 204 No Content is typical for successful DELETE
+HttpStatus Hello::delete_(json& response_body) {
+    response_body["message"] = "Hello World DELETE";
+    return HTTP_204_NO_CONTENT;
 }
