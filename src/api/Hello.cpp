@@ -23,7 +23,7 @@ QueryParamRules Hello::query_param_rules() {
     query_param_rules.get["sort"] = sort_rule;
     query_param_rules.get["is_active"] = is_active_rule;
 
-    return query_param_rules; // No query parameters expected
+    return query_param_rules;
 }
 
 HttpStatus Hello::get(json& response_body) {

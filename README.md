@@ -52,7 +52,7 @@ Define `QueryParamRules` within your handler class to enforce:
 - **Allowed Values** (for enumerations)
 
 ```cpp
-QueryParamRules HelloHandler::query_param_rules() {
+QueryParamRules Hello::query_param_rules() {
     QueryParamRules rules;
 
     ParamRule limit;
@@ -77,36 +77,107 @@ QueryParamRules HelloHandler::query_param_rules() {
 ## 🧱 Example Endpoint Implementation
 
 ```cpp
-class HelloHandler : public Resource {
+// include/api/Hello.hpp
+#pragma once
+#include "IResource.hpp"
+
+#include <string>
+#include <iostream>
+
+
+class Hello : public IResource {
 public:
-    HttpStatus get(std::string& response_body) override {
-        int limit = query_params.get("limit");
-        response_body = "Hello World! Limit = " + std::to_string(limit) + "\n";
-        return HTTP_200_OK;
-    }
-
-    HttpStatus post(std::string& response_body) override {
-        response_body = "Created Hello Resource\n";
-        return HTTP_201_CREATED;
-    }
-
-    HttpStatus put(std::string& response_body) override {
-        response_body = "Updated Hello Resource\n";
-        return HTTP_200_OK;
-    }
-
-    HttpStatus delete_(std::string& response_body) override {
-        response_body = "Deleted Hello Resource\n";
-        return HTTP_204_NO_CONTENT;
-    }
+	QueryParamRules query_param_rules() override;
+	HttpStatus get(json&) override;
+	HttpStatus put(json&) override;
+	HttpStatus post(json&) override;
+	HttpStatus delete_(json&) override;
 };
+
 ```
 
 ---
+
+```cpp
+// src/api/Hello.cpp
+#include "Hello.hpp"
+QueryParamRules Hello::query_param_rules() {
+
+    QueryParamRules query_param_rules;
+
+    ParamRule limit_rule;
+    limit_rule.required = true;
+    limit_rule.type = "INT";
+    limit_rule.min_value = "1";
+    limit_rule.max_value = "100";
+
+    ParamRule sort_rule;
+    sort_rule.required = false;
+    sort_rule.type = "ENUM";
+    sort_rule.allowed_values = { "asc", "desc" };
+
+    ParamRule is_active_rule;
+    is_active_rule.required = false;
+    is_active_rule.type = "BOOL";
+
+    // Assign rules to the GET method
+    query_param_rules.get["limit"] = limit_rule;
+    query_param_rules.get["sort"] = sort_rule;
+    query_param_rules.get["is_active"] = is_active_rule;
+
+    return query_param_rules;
+}
+
+HttpStatus Hello::get(json& response_body) {
+    const std::string a = "limit";
+    int limit = query_params.get(a);  // ValueProxy allows implicit cast
+
+    std::string name = path_params.get("NAME");
+
+    std::cout << "Inside Hello_ID Get method, Query Param Limit: " << limit
+        << " Path Param Name: " << name << std::endl;
+
+
+    response_body["message"] = "Hello World GET";
+    response_body["limit"] = limit;
+    response_body["name"] = name;
+
+    return HTTP_200_OK;
+}
+
+HttpStatus Hello::post(json& response_body) {
+    response_body["message"] = "Hello World POST";
+
+    std::string string_value = payload["string_key"];
+	int int_value = payload["int_key"];
+
+	response_body["string_value"] = string_value;
+	response_body["int_value"] = int_value;
+
+    return HTTP_201_CREATED;
+}
+
+HttpStatus Hello::put(json& response_body) {
+    response_body["message"] = "Hello World PUT";
+    return HTTP_200_OK;
+}
+
+HttpStatus Hello::delete_(json& response_body) {
+    response_body["message"] = "Hello World DELETE";
+    return HTTP_204_NO_CONTENT;
+}
+
+
+```
+
+---
+
 ## 📝 Update CmakeLists.txt
+
 Ensure your `CMakeLists.txt` includes the necessary components:
+
 ```cmake
-add_executable(... 
+add_executable(...
                 src/api/Hello.cpp
 )
 
@@ -122,11 +193,14 @@ cd cpp_server
 mkdir build && cd build
 cmake .. -DCMAKE_POLICY_VERSION_MINIMUM=3.5
 cmake --build .
+cd Debug
+cpp_server.exe
 ```
 
 ---
 
 ## Sample Curl Cmd
+
 ```bash
 curl -X POST "http://localhost:8080/hello/1" -H "Content-Type: application/json" -d "{\"int_key\":1, \"string_key\":\"value\"}"
 {
@@ -136,8 +210,6 @@ curl -X POST "http://localhost:8080/hello/1" -H "Content-Type: application/json"
 }
 ```
 
-
 ## 📢 Contributing
 
 Contributions are welcome! Please open issues for bug reports or feature requests, and submit pull requests for enhancements.
-

@@ -1,7 +1,7 @@
 #include "Hello_Id.hpp"
 QueryParamRules Hello_Id::query_param_rules() {
 
-    return get_empty_query_param_rules();
+    return get_empty_query_param_rules(); // no query params .
 }
 
 HttpStatus Hello_Id::get(json& response_body) {
